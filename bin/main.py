@@ -8,12 +8,12 @@ def main():
 	datatable = regularexpression(sys.argv[1])
 
 	## export revised table to newfile
-	datatable.to_csv("newmerged1.file", sep='\t')
+	datatable.to_csv("newmerged.file", sep='\t')
 	
 	#Figures
-	bodysizeA(datatable)
-	bodysizeB(datatable)
-	plt.show()
+	#bodysizeA(datatable)
+	#bodysizeB(datatable)
+	#plt.show()
 
 	
 # regularexpression function
@@ -27,16 +27,17 @@ def regularexpression(data):
 	##pandas is dataframe library
 	import pandas as pd
 	
+	## read a file as table
+	gDat = pd.read_table(data, sep="\s+", names = ['v1',"date", "plate", "time", "strain", "frame", "ID", "persistance", "area", "speed", "angularspeed", "length", "rellength", "width", "relwidth", "aspect", "relaspect", "midline", "morphwidth", "kink", "bias", "pathlen", "curve", "dir", "loc_x", "loc_y", "vel_x", "vel_y", "orient", "crab"])
+	
+	
+	## delete column(v1) from the table
+	newgDat = gDat.drop('v1', axis=1)
+	
 	## compile a regular expression pattern. It will speed up the ""findall"" function up to 100 times.
 	## open a file as strings: This process is necessary for the ""regex.findall"" function.
 	lines = []
 	lines = open(data).read()
-	
-	## read a file as table
-	gDat = pd.read_table(data, header=None, names = ["v1", "ID", "BIAS", "SPEED", "MORPHWIDTH", "MIDDLINE", "AREA", "loc_x", "loc_y"], delim_whitespace=True)
-	
-	## delete column(v1) from the table
-	newgDat = gDat.drop('v1', axis=1)
 	
 	PA = regex.compile('./([0-9]{8})_')
 	PB = regex.compile('./([0-9]{8}_[0-9]{6})/')

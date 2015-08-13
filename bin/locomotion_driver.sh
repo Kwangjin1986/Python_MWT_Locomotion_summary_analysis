@@ -4,16 +4,27 @@
 ## Set working directory to project's root directory
 ##
 ## Requires the following input from the user:
-##		$1: webdav server URL 
-##		$2: path on webdav where .zip folders should be saved (including where it is 
-##			mounted on your computer (e.g /path_on_webdav)
-##		$3: path to chore.jar (offline analys program Choreography)
-##		$4: gigabytes of memory to be used to run Choreography (dependent upon
+##		$1: gigabytes of memory to be used to run Choreography (dependent upon
 ##			the machine you are using
+##		$2: webdav server URL 
+##		$3: path on webdav where .zip folders should be saved (including where it is 
+##			mounted on your computer (e.g /path_on_webdav)
+##    $4: control strain, which will be plotted first and used as a baseline for 
+##      radarplot strain comparisons. 
+##      NOTE: input is case-sensitive!
+
+
+
+## Set amount of memory to be devoted to running Choreography
+export MWT_JAVA_OPTIONS=-Xmx$1g
 
 ## Connect to webdav (so you can backup files)
 ## you will be prompted for your webdav username and password
-mount_webdav -i  $1 /
+mount_webdav -i  $2 /
+
+## for Windows users,
+## net use Z: $2 /user:username password /persistent: YES
+
 
 ## zip all folders all MWT data folders in directory to be analyzed
 ## must be in "data" working directory 
@@ -25,12 +36,12 @@ for uncompressed in */; do rm -r $uncompressed/; done
 
 ## copy .zip files to a webdav server
 ## Note - this is very slow...
-cp *.zip $2
+cp *.zip $3
 
 ## call choreography to analyze the MWT data (each .zip in the folder data)
 ## error: Exactly one filename required
 ##  Use --help to list valid options.
-for zipfolder in *.zip; do java -Xmx$4g -jar $3 --shadowless -p 0.027 -M 2 -t 20 -S -N all -o fDpesSlLwWaAmMkbPcdxyuvorC1234 --plugin Reoutline::despike --plugin Respine --plugin MeasureReversal::all $zipfolder; done
+for zipfolder in *.zip; do Chore --shadowless -p 0.027 -M 2 -t 20 -S -N all -o fDpesSlLwWaAmMkbPcdxyuvor1234 --plugin Reoutline::despike --plugin Respine --plugin MeasureReversal::all $zipfolder; done
 
 ## move unzipped folder into a new directory (called chore_data)
 mv */ $(mkdir chore_data)
@@ -45,8 +56,6 @@ cd ../..
 ## Use regular expressions in R to parse apart the information in the filepath
 ## so we can get data, plate ID and strain as delimited columns
 ## call R script with the command line using an argument for the filename we want to parse
-   rscript bin/Column_identification_command.R data/chore_data/merged.file 
-
-## create figures
-
-## create stats
+## After data is parsed, figures are plotted and stats are done and saved in results 
+## directory
+rscript bin/Column_identification.R data/chore_data/merged.file $4
