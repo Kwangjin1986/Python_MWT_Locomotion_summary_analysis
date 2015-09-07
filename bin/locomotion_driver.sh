@@ -6,56 +6,28 @@
 ## Requires the following input from the user:
 ##		$1: gigabytes of memory to be used to run Choreography (dependent upon
 ##			the machine you are using
-##		$2: webdav server URL 
-##		$3: path on webdav where .zip folders should be saved (including where it is 
-##			mounted on your computer (e.g /path_on_webdav)
-##    $4: control strain, which will be plotted first and used as a baseline for 
+##		$2: path to  directory containing MWT experiment folders
+##		$3: path to directory where data will be saved
+##    	$4: control strain, which will be plotted first and used as a baseline for 
 ##      radarplot strain comparisons. 
 ##      NOTE: input is case-sensitive!
-
-
 
 ## Set amount of memory to be devoted to running Choreography
 export MWT_JAVA_OPTIONS=-Xmx$1g
 
-## Connect to webdav (so you can backup files)
-## you will be prompted for your webdav username and password
-mount_webdav -i  $2 /
-
-## for Windows users,
-## net use Z: $2 /user:username password /persistent: YES
-
-
-## zip all folders all MWT data folders in directory to be analyzed
-## must be in "data" working directory 
-cd data
-for foldername in *; do cd $foldername; zip ../$foldername *; cd ..; done
-
-## destroy/delete unzipped MWT folder
-for uncompressed in */; do rm -r $uncompressed/; done
-
-## copy .zip files to a webdav server
-## Note - this is very slow...
-cp *.zip $3
-
 ## call choreography to analyze the MWT data (each .zip in the folder data)
 ## error: Exactly one filename required
 ##  Use --help to list valid options.
-for zipfolder in *.zip; do Chore --shadowless -p 0.027 -M 2 -t 20 -S -N all -o fDpesSlLwWaAmMkbPcdxyuvor1234 --plugin Reoutline::despike --plugin Respine --plugin MeasureReversal::all $zipfolder; done
-
-## move unzipped folder into a new directory (called chore_data)
-mv */ $(mkdir chore_data)
+for folder in $2/*/; do Chore --shadowless -p 0.027 -M 2 -t 20 -S -N all -o fDpesSlLwWaAmMkbPcdxyuvor1234 --plugin Reoutline::despike --plugin Respine --plugin MeasureReversal::all $folder; done
 
 ## need to create a large file containing all data files with 
 ## data, plate name and strain name in each row
 ##grep -r '[0-9]' $(find ./data -name '*.dat') > merged.file
-cd chore_data
-for filename in $(find . -name '*.dat'); do grep -H '[0-9]' $filename >> merged.file; done
-cd ../..
+for filename in $(find $2/. -name '*.dat'); do grep -H '[0-9]' $filename >> $2/merged.file; done
 
 ## Use regular expressions in R to parse apart the information in the filepath
 ## so we can get data, plate ID and strain as delimited columns
 ## call R script with the command line using an argument for the filename we want to parse
 ## After data is parsed, figures are plotted and stats are done and saved in results 
 ## directory
-rscript bin/Column_identification.R data/chore_data/merged.file $4
+python bin/locomotion.py $2/merged.file $2/merged_parsed.file $3 
