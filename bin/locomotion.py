@@ -7,7 +7,7 @@
 ##arguments:
 #1. input_file = the file after you run Choreography (file is easy to read)
 #2. out_file_table = after regular experession (table format and more readable)
-#3. figure_directory_path = absolute directory path that you want save your all figures
+#3. figure_directory = absolute directory path that you want save your all figures
 #4. time_start = beggining experiment time you want to get data
 #5. time_end = end experiment time you want to get data
 
@@ -25,6 +25,8 @@ def main():
 	##sys library is required for arguments 
 	import sys
 	import matplotlib.pyplot as plt
+	import pandas as pd
+	import numpy as np
 	
 	#read in command arguments
 	input_file = sys.argv[1]
@@ -59,8 +61,14 @@ def main():
 	#Figures_bodysize
 	#bodysize_bar(modified_table)
 	
-	
+	## make dataframe consisting of plate, strain, time, and speed
+	st_dataframe = ttable[['PLATE', 'STRAIN', 'TIME', 'SPEED']]
+	st_dataframe.columns = ['plate', 'strain', 'time', 'speed']
+	st_dataframe.head(n=2)
 
+	## call function that will eventually create a plot object for speed versus 
+	## time. Currently it only successfully bins time and aggregates over speed.
+	print plot_speed_vs_time(st_dataframe)
 	
 # regularexpression function
 def regularexpression(data):
@@ -150,6 +158,35 @@ def bodylength_box(Box):
 	import matplotlib.pyplot as plt
 	Lengthtable = Box.boxplot(column = ['LENGTH'],by = ['STRAIN'], showfliers=False, showmeans = True, return_type = 'axes')
 	return Lengthtable
+
+def plot_speed_vs_time(dataframe):
+    '''plot speed decay over time bin into time intervals to make it 
+    quicker to plot (average speed over every 20s for 10 min)
+    input: a dataframe consisting of plate, strain, time, and speed
+    output: a plot object plotting time versus speed'''
+    
+    ## get rid of data from 0-40s of the experiment (sometimes the tracker 
+    ## doesn't start tracking until 15s into the experiment)
+    #dataframe.tint  <- dataframe.tint[which(dataframe.tint$time>40),]
+    dataframe = dataframe[(dataframe['time']>=40)]
+    
+    ## divide time into intervals (e.g. 20-40) to the last time point
+    bin_vals_max = round(dataframe['time'].max(), 0)
+    bin_vals_max = int(bin_vals_max) + 20
+    bin_vals = range(bin_vals_max)
+    bin_vals = bin_vals[::20]
+    binned_time = pd.cut(dataframe.time, bins = bin_vals)
+    binned_dataframe = dataframe[['plate', 'strain', 'speed']]
+    binned_dataframe['time'] = binned_time
+    
+    ## average over each strain for each time period
+    by_strain_time = binned_dataframe.groupby(['strain', 'time'])
+    agg_strain_time = by_strain_time['speed'].agg([np.mean, np.std])
+    
+    ## make plot with 95% confidence intervals for error bars
+    
+    # return plot object
+    return agg_strain_time.head()
 
 if __name__ == '__main__':
 	
