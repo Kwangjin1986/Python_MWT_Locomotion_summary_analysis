@@ -68,7 +68,8 @@ def main():
 
 	## call function that will eventually create a plot object for speed versus 
 	## time. Currently it only successfully bins time and aggregates over speed.
-	print plot_speed_vs_time(st_dataframe)
+	plot_speed = plot_speed_vs_time(st_dataframe)
+	plt.savefig(figure_directory+'/speed_box.png', bbox_inches='tight')
 	
 # regularexpression function
 def regularexpression(data):
@@ -159,6 +160,10 @@ def bodylength_box(Box):
 	Lengthtable = Box.boxplot(column = ['LENGTH'],by = ['STRAIN'], showfliers=False, showmeans = True, return_type = 'axes')
 	return Lengthtable
 
+def floor_time_int(time_value):
+    "Takes a time. Returns the a time bin."
+    return (time_value // 20) * 20
+
 def plot_speed_vs_time(dataframe):
     '''plot speed decay over time bin into time intervals to make it 
     quicker to plot (average speed over every 20s for 10 min)
@@ -167,26 +172,17 @@ def plot_speed_vs_time(dataframe):
     
     ## get rid of data from 0-40s of the experiment (sometimes the tracker 
     ## doesn't start tracking until 15s into the experiment)
-    #dataframe.tint  <- dataframe.tint[which(dataframe.tint$time>40),]
     dataframe = dataframe[(dataframe['time']>=40)]
     
-    ## divide time into intervals (e.g. 20-40) to the last time point
-    bin_vals_max = round(dataframe['time'].max(), 0)
-    bin_vals_max = int(bin_vals_max) + 20
-    bin_vals = range(bin_vals_max)
-    bin_vals = bin_vals[::20]
-    binned_time = pd.cut(dataframe.time, bins = bin_vals)
-    binned_dataframe = dataframe[['plate', 'strain', 'speed']]
-    binned_dataframe['time'] = binned_time
-    
-    ## average over each strain for each time period
-    by_strain_time = binned_dataframe.groupby(['strain', 'time'])
-    agg_strain_time = by_strain_time['speed'].agg([np.mean, np.std])
-    
-    ## make plot with 95% confidence intervals for error bars
+    ## call function floor_time_int() to replace continuous time 
+    ## column with time binned into 20s intervals
+    dataframe['time'] = floor_time_int(dataframe['time'])
+     
+    ## plot time series
+    my_speed_plot = dataframe.boxplot(column = ['speed'], by=['time', 'strain'], showfliers=False, showmeans = True, return_type = 'axes')
     
     # return plot object
-    return agg_strain_time.head()
+    return my_speed_plot
 
 if __name__ == '__main__':
 	
