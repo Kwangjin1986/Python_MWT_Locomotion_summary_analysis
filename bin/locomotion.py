@@ -162,7 +162,7 @@ def bodylength_box(Box):
 
 def floor_time_int(time_value):
     "Takes a time. Returns the a time bin."
-    return (time_value // 20) * 20
+    return ((time_value // 20) * 20)+10
 
 def plot_speed_vs_time(dataframe):
     '''plot speed decay over time bin into time intervals to make it 
@@ -172,7 +172,7 @@ def plot_speed_vs_time(dataframe):
     
     ## get rid of data from 0-40s of the experiment (sometimes the tracker 
     ## doesn't start tracking until 15s into the experiment)
-    dataframe = dataframe[(dataframe['time']>=40)]
+    dataframe = dataframe[(dataframe['time']>=40) & (dataframe['time']<600)]
     
     ## call function floor_time_int() to replace continuous time 
     ## column with time binned into 20s intervals
