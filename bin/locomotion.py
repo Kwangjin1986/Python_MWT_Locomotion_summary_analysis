@@ -176,12 +176,13 @@ def plot_speed_vs_time(dataframe):
     
     ## call function floor_time_int() to replace continuous time 
     ## column with time binned into 20s intervals
-    dataframe['time'] = floor_time_int(dataframe['time'])
+    time = floor_time_int(dataframe['time'])
+    dataframe.loc[:,('time')] = floor_time_int(dataframe['time'])
      
     ## plot time series
     my_speed_plot = dataframe.boxplot(column = ['speed'], by=['time', 'strain'], showfliers=False, showmeans = True, return_type = 'axes')
     
-    # return plot object
+    ## return plot object
     return my_speed_plot
 
 if __name__ == '__main__':
