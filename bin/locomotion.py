@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-##Kwangjin Park 20150827
+##Kwangjin Park 20151015
 ##Analyzing data obtained from Multi Worm Tracker
 ##python code for generating figures of worm bodyzise, bodylength and speed decay.  
 
@@ -27,6 +27,7 @@ def main():
 	import matplotlib.pyplot as plt
 	import pandas as pd
 	import numpy as np
+	from ggplot import *
 	
 	#read in command arguments
 	input_file = sys.argv[1]
@@ -61,15 +62,10 @@ def main():
 	#Figures_bodysize
 	#bodysize_bar(modified_table)
 	
-	## make dataframe consisting of plate, strain, time, and speed
-	st_dataframe = ttable[['PLATE', 'STRAIN', 'TIME', 'SPEED']]
-	st_dataframe.columns = ['plate', 'strain', 'time', 'speed']
-	st_dataframe.head(n=2)
-
 	## call function that will eventually create a plot object for speed versus 
 	## time. Currently it only successfully bins time and aggregates over speed.
-	plot_speed = plot_speed_vs_time(st_dataframe)
-	plt.savefig(figure_directory+'/speed_box.png', bbox_inches='tight')
+	plot_speed = plot_speed_time(st_dataframe)
+	ggsave(plot_speed, file='speed_time.png', h=4, w=6, units="in", dpi=300) 
 	
 # regularexpression function
 def regularexpression(data):
@@ -164,26 +160,46 @@ def floor_time_int(time_value):
     "Takes a time. Returns the a time bin."
     return ((time_value // 20) * 20)+10
 
-def plot_speed_vs_time(dataframe):
-    '''plot speed decay over time bin into time intervals to make it 
-    quicker to plot (average speed over every 20s for 10 min)
-    input: a dataframe consisting of plate, strain, time, and speed
-    output: a plot object plotting time versus speed'''
-    
-    ## get rid of data from 0-40s of the experiment (sometimes the tracker 
+def plot_speed_time(dataframe):
+	'''plot speed decay over time bin into time intervals to make it 
+	quicker to plot (average speed over every 20s for 10 min)
+	input: a dataframe consisting of strain, time and speed
+	output: a plot object plotting time versus speed'''
+	
+	import numpy as np
+	from ggplot import *
+	
+	##selecting coloums(strain, time and speed) from dataframe
+	dataframe_cut = datafame[['STRAIN','TIME','SPEED']] 
+	
+	## get rid of data from 0-40s of the experiment (sometimes the tracker 
     ## doesn't start tracking until 15s into the experiment)
-    dataframe = dataframe[(dataframe['time']>=40) & (dataframe['time']<600)]
+	dataframe_cut = dataframe_cut[(dataframe['TIME']>=40) & (dataframe['TIME']<600)]
+	
+	## call function floor_time_int() and add modified time column
+	dataframe_cut['TIMEt'] = floor_time_int(dataframe_cut['TIME'])
+	
+	## group by strain and modified time
+	time_speed= dataframe_cut.groupby(['STRAIN','TIMEt'])
+	time_speed_analysis = time_speed['SPEED'].agg([np.mean, np.std])
+	
+	## reset the index of dataframe
+	time_speed_analysis = time_speed_analysis.reset_index()
+	
+	##plot time and speed by strains
+	speed_time_plot = ggplot(aes(x = 'TTIME', y = 'mean', color = 'STRAIN'), data=time_speed_mean)+\
+					  xlab("TIME")+\
+					  ylab("Average of Speed")+\
+					  ggtitle("Speed vs. Time")+\
+					  xlim(30,620)+\
+					  ylim(0,0.18)+\
+					  geom_point(alpha =0.4)+\
+					  theme_bw()+\
+					  stat_smooth(size= 2, alpha=0.1)
     
-    ## call function floor_time_int() to replace continuous time 
-    ## column with time binned into 20s intervals
-    time = floor_time_int(dataframe['time'])
-    dataframe.loc[:,('time')] = floor_time_int(dataframe['time'])
-     
-    ## plot time series
-    my_speed_plot = dataframe.boxplot(column = ['speed'], by=['time', 'strain'], showfliers=False, showmeans = True, return_type = 'axes')
-    
-    ## return plot object
-    return my_speed_plot
+	## return plot object
+	return speed_time_plot
+	
 
 if __name__ == '__main__':
 	
